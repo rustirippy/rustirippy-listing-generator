@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ shop.shop_name }} · Listing Generator{% endblock %}
+{% block content %}
+<div class="row between">
+  <div>
+    <h1>{{ shop.shop_name }}</h1>
+    <p class="muted">Last synced {{ shop.last_synced_at | ago }}{% if settings.background_sync %} · auto-sync every {{ settings.sync_interval_minutes }} min{% endif %}</p>
+  </div>
+  <div class="row">
+    <form method="post" action="/shops/{{ shop.shop_id }}/sync"><button>Sync now</button></form>
+    <a class="button primary" href="/shops/{{ shop.shop_id }}/new">New listing</a>
+  </div>
+</div>
+
+<div class="cols">
+  <section class="card wide">
+    <div class="row between">
+      <h2>Listings ({{ listings|length }})</h2>
+      <span class="muted">Sort:
+        <a href="?sort=score" {% if sort == 'score' %}class="active"{% endif %}>needs work first</a> ·
+        <a href="?sort=recent" {% if sort != 'score' %}class="active"{% endif %}>recently changed</a></span>
+    </div>
+    <table>
+      <thead><tr><th>Score</th><th>Title</th><th>State</th><th></th></tr></thead>
+      <tbody>
+      {% for l in listings %}
+        {% set d = l.data | fromjson %}
+        <tr>
+          <td><span class="score {% if l.score >= 80 %}good{% elif l.score >= 60 %}ok{% else %}bad{% endif %}">{{ l.score }}</span></td>
+          <td><a href="{{ d.url }}" target="_blank" rel="noopener">{{ l.title }}</a><div class="muted small">{{ (d.tags or [])|length }} tags</div></td>
+          <td>{{ l.state }}</td>
+          <td class="actions">
+            <form method="post" action="/listings/{{ l.listing_id }}/optimize"><button class="small">Improve</button></form>
+            <a class="button small" href="/shops/{{ shop.shop_id }}/new?template={{ l.listing_id }}">Make similar</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted">No listings yet. Sync, or create your first one.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <aside>
+    <section class="card">
+      <h2>Drafts</h2>
+      <ul class="plain">
+      {% for d in drafts if d.status != 'discarded' %}
+        {% set f = d.fields | fromjson %}
+        <li><a href="/drafts/{{ d.id }}">{{ f.title or 'Untitled' }}</a>
+          <span class="pill {{ d.status }}">{{ 'improvement' if d.kind == 'optimize' else 'new' }} · {{ d.status }}</span></li>
+      {% else %}
+        <li class="muted">Nothing drafted yet.</li>
+      {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Bulk create from CSV</h2>
+      <p class="muted small">Columns: <code>notes</code>, <code>price</code>, <code>quantity</code>. One draft per row (up to 50).</p>
+      <form method="post" action="/shops/{{ shop.shop_id }}/bulk" enctype="multipart/form-data">
+        <input type="file" name="csv_file" accept=".csv" required>
+        <button>Generate drafts</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Recent changes on Etsy</h2>
+      <ul class="plain small">
+      {% for c in changes %}
+        <li><span class="pill">{{ c.kind }}</span> {{ c.summary }} <span class="muted">{{ c.created_at | ago }}</span></li>
+      {% else %}
+        <li class="muted">No changes recorded yet.</li>
+      {% endfor %}
+      </ul>
+    </section>
+  </aside>
+</div>
+{% endblock %}

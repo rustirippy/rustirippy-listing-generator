@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card narrow">
+  <h1>Sign in</h1>
+  <form method="post" action="/login">
+    <label>Password <input type="password" name="password" autofocus required></label>
+    <button class="primary">Sign in</button>
+  </form>
+</section>
+{% endblock %}

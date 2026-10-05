@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+{% set locked = draft.status in ('applied', 'published') %}
+<p><a href="/shops/{{ draft.shop_id }}">← {{ shop.shop_name }}</a></p>
+<div class="row between">
+  <h1>{% if draft.kind == 'optimize' %}Improve listing{% else %}New listing draft{% endif %}</h1>
+  <span class="pill {{ draft.status }}">{{ draft.status }}</span>
+</div>
+
+{% if draft.error %}<div class="flash error">Last Etsy error: {{ draft.error }}</div>{% endif %}
+{% if f.seller_notes %}<div class="card tip"><strong>Notes for you:</strong> {{ f.seller_notes }}</div>{% endif %}
+{% if issues %}
+<div class="card warn"><strong>Fix before sending to Etsy:</strong><ul>{% for i in issues %}<li>{{ i }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<form class="card" method="post" action="/drafts/{{ draft.id }}">
+  <label>Title <span class="counter" data-for="title" data-max="{{ limits.TITLE_MAX }}"></span>
+    <input id="title" name="title" value="{{ f.title }}" maxlength="{{ limits.TITLE_MAX }}">
+  </label>
+  {% if draft.kind == 'optimize' and f.original %}<p class="muted small">Was: {{ f.original.title }}</p>{% endif %}
+
+  <label>Description
+    <textarea name="description" rows="14">{{ f.description }}</textarea>
+  </label>
+
+  <label>Tags (comma separated, {{ limits.TAGS_MAX }} max, {{ limits.TAG_MAX }} characters each) <span class="counter" data-for="tags" data-max="{{ limits.TAGS_MAX }}" data-mode="list"></span>
+    <input id="tags" name="tags" value="{{ (f.tags or [])|join(', ') }}">
+  </label>
+  {% if draft.kind == 'optimize' and f.original %}<p class="muted small">Was: {{ (f.original.tags or [])|join(', ') }}</p>{% endif %}
+
+  <label>Materials (comma separated)
+    <input name="materials" value="{{ (f.materials or [])|join(', ') }}">
+  </label>
+
+  <label>Category
+    <input type="hidden" name="taxonomy_id" id="taxonomy_id" value="{{ f.taxonomy_id or '' }}">
+    <input id="taxonomy_search" placeholder="Search categories" value="{{ taxonomy.path if taxonomy else '' }}" autocomplete="off">
+    <ul id="taxonomy_results" class="suggest"></ul>
+  </label>
+
+  {% if draft.kind == 'new' %}
+  <div class="grid2">
+    <label>Price <input name="price" value="{{ f.price }}" inputmode="decimal"></label>
+    <label>Quantity <input name="quantity" value="{{ f.quantity }}" inputmode="numeric"></label>
+    <label>Who made it
+      <select name="who_made">{% for w in who_made %}<option {% if w == f.who_made %}selected{% endif %}>{{ w }}</option>{% endfor %}</select>
+    </label>
+    <label>When was it made
+      <select name="when_made">{% for w in when_made %}<option {% if w == f.when_made %}selected{% endif %}>{{ w }}</option>{% endfor %}</select>
+    </label>
+    <label>Type
+      <select name="type">{% for t in ['physical', 'download', 'both'] %}<option {% if t == f.type %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+    </label>
+    <label>Shipping profile
+      <select name="shipping_profile_id"><option value="">None</option>
+        {% for s in shipping %}<option value="{{ s.shipping_profile_id }}" {% if s.shipping_profile_id == f.shipping_profile_id %}selected{% endif %}>{{ s.title }}</option>{% endfor %}</select>
+    </label>
+    <label>Return policy
+      <select name="return_policy_id"><option value="">None</option>
+        {% for r in returns %}<option value="{{ r.return_policy_id }}" {% if r.return_policy_id == f.return_policy_id %}selected{% endif %}>{% if r.accepts_returns %}Returns within {{ r.return_deadline }} days{% else %}No returns{% endif %}</option>{% endfor %}</select>
+    </label>
+    <label>Processing time
+      <select name="readiness_state_id"><option value="">None</option>
+        {% for r in readiness %}<option value="{{ r.readiness_state_id }}" {% if r.readiness_state_id == f.readiness_state_id %}selected{% endif %}>{{ r.readiness_state }} · {{ r.min_processing_time }}-{{ r.max_processing_time }} {{ r.processing_time_unit }}</option>{% endfor %}</select>
+    </label>
+    <label class="check"><input type="checkbox" name="is_supply" {% if f.is_supply %}checked{% endif %}> This is a craft supply</label>
+  </div>
+  {% if draft.images %}
+  <div class="thumbs">{% for i in draft.images %}<span class="pill">photo {{ loop.index }}</span>{% endfor %}</div>
+  {% endif %}
+  {% endif %}
+
+  {% if not locked %}<button>Save edits</button>{% endif %}
+</form>
+
+{% if not locked %}
+<div class="cols">
+  <form class="card" method="post" action="/drafts/{{ draft.id }}/regenerate">
+    <h2>Rewrite with AI</h2>
+    <input name="notes" placeholder="Optional: what to change (e.g. more playful, mention gift wrapping)">
+    <button data-busy="Rewriting…">Rewrite</button>
+  </form>
+
+  <div class="card">
+    <h2>Send to Etsy</h2>
+    {% if draft.kind == 'optimize' %}
+      <p class="muted small">Updates the title, description, tags, materials and category on the live listing.</p>
+      <form method="post" action="/drafts/{{ draft.id }}/push"><input type="hidden" name="action" value="apply"><button class="primary">Apply to Etsy listing</button></form>
+    {% else %}
+      <p class="muted small">Saving as a draft is free. Publishing makes it live and Etsy charges its normal listing fee.</p>
+      <div class="row">
+        <form method="post" action="/drafts/{{ draft.id }}/push"><input type="hidden" name="action" value="draft"><button>Save to Etsy as draft</button></form>
+        <form method="post" action="/drafts/{{ draft.id }}/push" onsubmit="return confirm('Publish this listing on Etsy? Etsy will charge its listing fee.')"><input type="hidden" name="action" value="publish"><button class="primary">Publish</button></form>
+      </div>
+    {% endif %}
+    <form method="post" action="/drafts/{{ draft.id }}/discard"><button class="link">Discard draft</button></form>
+  </div>
+</div>
+{% elif draft.etsy_listing_id %}
+<p><a class="button" href="https://www.etsy.com/listing/{{ draft.etsy_listing_id }}" target="_blank" rel="noopener">View on Etsy</a></p>
+{% endif %}
+{% endblock %}

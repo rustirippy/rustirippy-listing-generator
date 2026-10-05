@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New listing for {{ shop.shop_name }}</h1>
+<form class="card" method="post" action="/shops/{{ shop.shop_id }}/new" enctype="multipart/form-data">
+  <label>What are you selling?
+    <textarea name="notes" rows="6" placeholder="e.g. Hand-thrown stoneware mug, speckled white glaze, holds 12 oz, dishwasher safe, ships in 3 days. Great gift for coffee lovers."></textarea>
+  </label>
+  <label>Photos (up to 5, used by the AI and uploaded to Etsy)
+    <input type="file" name="photos" accept="image/*" multiple>
+  </label>
+  <label>Base it on an existing listing (copies price, category and shipping settings)
+    <select name="template_id">
+      <option value="">None</option>
+      {% for l in listings %}<option value="{{ l.listing_id }}" {% if l.listing_id == template_id %}selected{% endif %}>{{ l.title }}</option>{% endfor %}
+    </select>
+  </label>
+
+  <details>
+    <summary>Price, quantity and Etsy settings</summary>
+    <div class="grid2">
+      <label>Price <input name="price" inputmode="decimal" placeholder="24.00"></label>
+      <label>Quantity <input name="quantity" inputmode="numeric" placeholder="{{ defaults.quantity }}"></label>
+      <label>Who made it
+        <select name="who_made">{% for w in who_made %}<option {% if w == defaults.who_made %}selected{% endif %}>{{ w }}</option>{% endfor %}</select>
+      </label>
+      <label>When was it made
+        <select name="when_made">{% for w in when_made %}<option {% if w == defaults.when_made %}selected{% endif %}>{{ w }}</option>{% endfor %}</select>
+      </label>
+      <label>Type
+        <select name="listing_type"><option>physical</option><option>download</option><option>both</option></select>
+      </label>
+      <label>Shipping profile
+        <select name="shipping_profile_id"><option value="">Default</option>
+          {% for s in shipping %}<option value="{{ s.shipping_profile_id }}">{{ s.title }}</option>{% endfor %}</select>
+      </label>
+      <label>Return policy
+        <select name="return_policy_id"><option value="">Default</option>
+          {% for r in returns %}<option value="{{ r.return_policy_id }}">{% if r.accepts_returns %}Returns within {{ r.return_deadline }} days{% else %}No returns{% endif %}</option>{% endfor %}</select>
+      </label>
+      <label>Processing time
+        <select name="readiness_state_id"><option value="">Default</option>
+          {% for r in readiness %}<option value="{{ r.readiness_state_id }}">{{ r.readiness_state }} · {{ r.min_processing_time }}-{{ r.max_processing_time }} {{ r.processing_time_unit }}</option>{% endfor %}</select>
+      </label>
+    </div>
+  </details>
+
+  <button class="primary" data-busy="Writing your listing…">Generate listing</button>
+</form>
+{% endblock %}

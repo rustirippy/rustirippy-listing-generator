@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Your shops</h1>
+
+{% if not settings.etsy_configured or not settings.claude_configured %}
+<section class="card warn">
+  <h2>Finish setup</h2>
+  <ul>
+    {% if not settings.etsy_configured %}<li>Add <code>ETSY_API_KEY</code> (and <code>ETSY_SHARED_SECRET</code>) from your app at developers.etsy.com to <code>.env</code>.</li>{% endif %}
+    {% if not settings.claude_configured %}<li>Add <code>ANTHROPIC_API_KEY</code> to <code>.env</code> so the generator can write listings.</li>{% endif %}
+  </ul>
+</section>
+{% endif %}
+
+{% if shops %}
+<div class="grid">
+  {% for s in shops %}
+  <a class="card shop" href="/shops/{{ s.shop_id }}">
+    <h2>{{ s.shop_name }}</h2>
+    <p class="muted">Last synced {{ s.last_synced_at | ago }}</p>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<section class="card">
+  <p>Connect your Etsy shop to import your listings. New listings you generate will match the voice of your best sellers.</p>
+</section>
+{% endif %}
+
+<p><a class="button primary" href="/connect">Connect an Etsy shop</a></p>
+{% endblock %}

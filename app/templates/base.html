@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Listing Generator{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/">Listing Generator</a>
+    <nav>
+      <a href="/">Shops</a>
+      {% if settings.app_password %}<span class="muted">signed in</span>{% endif %}
+    </nav>
+  </header>
+  <main>
+    {% if flash %}<div class="flash {{ flash.kind }}">{{ flash.message }}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    The term "Etsy" is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>
